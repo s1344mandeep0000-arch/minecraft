@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">MC Mod Studio</string>
+    <string name="studio_title">Minecraft AI Mod Maker Studio</string>
+    <string name="chat_input_hint">Describe your Minecraft Mod idea…</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="welcome_title">Build Bedrock Mods by Chatting</string>
+    <string name="welcome_subtitle">Describe mobs, custom blocks, bosses, weapons, armor, recipes, and pixel textures. I\'ll generate, validate, and package your Behavior &amp; Resource Packs automatically.</string>
+    <string name="export_mod">Export Mod</string>
+    <string name="preview_mod">Preview Mod</string>
+    <string name="fix_errors">Fix Mod Errors</string>
+    <string name="new_mod">New Mod</string>
+    <string name="saved_projects">Saved Projects</string>
+    <string name="sign_out">Sign Out</string>
+</resources>

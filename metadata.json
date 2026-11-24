@@ -1,0 +1,6 @@
+{
+  "name": "MC Mod Studio",
+  "description": "AI-powered Minecraft Bedrock Mod and Add-on Maker Studio with conversational Behavior & Resource Pack generation, validation, preview, and .mcaddon/.mcpack/.zip export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

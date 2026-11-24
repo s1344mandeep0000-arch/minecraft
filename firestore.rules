@@ -1,0 +1,184 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidProject(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+             data.namespace is string && data.namespace.size() >= 2 && data.namespace.size() <= 48 &&
+             data.description is string && data.description.size() <= 1000 &&
+             data.targetVersion is string && data.targetVersion.size() >= 1 && data.targetVersion.size() <= 32 &&
+             data.bpUuid is string && data.bpUuid.size() >= 1 && data.bpUuid.size() <= 64 &&
+             data.rpUuid is string && data.rpUuid.size() >= 1 && data.rpUuid.size() <= 64 &&
+             data.blocksCount is int && data.blocksCount >= 0 &&
+             data.mobsCount is int && data.mobsCount >= 0 &&
+             data.weaponsCount is int && data.weaponsCount >= 0 &&
+             data.armorCount is int && data.armorCount >= 0 &&
+             data.itemsCount is int && data.itemsCount >= 0 &&
+             data.structuresCount is int && data.structuresCount >= 0 &&
+             data.recipesCount is int && data.recipesCount >= 0 &&
+             data.texturesCount is int && data.texturesCount >= 0 &&
+             data.validationErrorCount is int && data.validationErrorCount >= 0 &&
+             data.validationSummary is string && data.validationSummary.size() <= 2000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidMessage(data, userId, projectId) {
+      return data.userId is string && data.userId == userId &&
+             data.projectId is string && data.projectId == projectId &&
+             data.role is string && data.role in ['USER', 'ASSISTANT', 'SYSTEM'] &&
+             data.text is string && data.text.size() <= 32000 &&
+             data.attachmentName is string && data.attachmentName.size() <= 200 &&
+             data.attachmentType is string && data.attachmentType in ['NONE', 'IMAGE', 'FILE'] &&
+             data.modSnapshotSummary is string && data.modSnapshotSummary.size() <= 2000 &&
+             data.generatedFileCount is int && data.generatedFileCount >= 0 &&
+             data.validationErrorCount is int && data.validationErrorCount >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidModFile(data, userId, projectId) {
+      return data.userId is string && data.userId == userId &&
+             data.projectId is string && data.projectId == projectId &&
+             data.packType is string && data.packType in ['BEHAVIOR_PACK', 'RESOURCE_PACK'] &&
+             data.relativePath is string && data.relativePath.size() >= 1 && data.relativePath.size() <= 240 &&
+             data.contentText is string && data.contentText.size() <= 200000 &&
+             data.textureBase64 is string && data.textureBase64.size() <= 100000 &&
+             data.valid is bool &&
+             data.validationNotes is string && data.validationNotes.size() <= 1000 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    match /users/{userId}/projects/{projectId} {
+      allow list: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(projectId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(projectId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'name', 'namespace', 'description', 'targetVersion',
+                         'bpUuid', 'rpUuid', 'blocksCount', 'mobsCount', 'weaponsCount',
+                         'armorCount', 'itemsCount', 'structuresCount', 'recipesCount',
+                         'texturesCount', 'validationErrorCount', 'validationSummary',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'name', 'namespace', 'description', 'targetVersion',
+                         'bpUuid', 'rpUuid', 'blocksCount', 'mobsCount', 'weaponsCount',
+                         'armorCount', 'itemsCount', 'structuresCount', 'recipesCount',
+                         'texturesCount', 'validationErrorCount', 'validationSummary',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidProject(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(projectId) &&
+                       isValidProject(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'name', 'namespace', 'description', 'targetVersion',
+                         'bpUuid', 'rpUuid', 'blocksCount', 'mobsCount', 'weaponsCount',
+                         'armorCount', 'itemsCount', 'structuresCount', 'recipesCount',
+                         'texturesCount', 'validationErrorCount', 'validationSummary',
+                         'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(projectId);
+
+      match /messages/{messageId} {
+        allow list: if isOwner(userId) && isValidId(projectId);
+        allow get: if isOwner(userId) && isValidId(projectId) && isValidId(messageId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidId(messageId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'projectId', 'role', 'text', 'attachmentName',
+                           'attachmentType', 'modSnapshotSummary', 'generatedFileCount',
+                           'validationErrorCount', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'projectId', 'role', 'text', 'attachmentName',
+                           'attachmentType', 'modSnapshotSummary', 'generatedFileCount',
+                           'validationErrorCount', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidMessage(incoming(), userId, projectId) &&
+                         existsAfter(/databases/$(database)/documents/users/$(userId)/projects/$(projectId));
+
+        allow update: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidId(messageId) &&
+                         isValidMessage(incoming(), userId, projectId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().projectId == existing().projectId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'text', 'modSnapshotSummary', 'generatedFileCount',
+                           'validationErrorCount', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(projectId) && isValidId(messageId);
+      }
+
+      match /files/{fileId} {
+        allow list: if isOwner(userId) && isValidId(projectId);
+        allow get: if isOwner(userId) && isValidId(projectId) && isValidId(fileId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidId(fileId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'projectId', 'packType', 'relativePath', 'contentText',
+                           'textureBase64', 'valid', 'validationNotes', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'projectId', 'packType', 'relativePath', 'contentText',
+                           'textureBase64', 'valid', 'validationNotes', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidModFile(incoming(), userId, projectId) &&
+                         existsAfter(/databases/$(database)/documents/users/$(userId)/projects/$(projectId));
+
+        allow update: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidId(fileId) &&
+                         isValidModFile(incoming(), userId, projectId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().projectId == existing().projectId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'packType', 'relativePath', 'contentText', 'textureBase64',
+                           'valid', 'validationNotes', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) && isValidId(projectId) && isValidId(fileId);
+      }
+    }
+  }
+}

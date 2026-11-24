@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "ModProject": {
+      "title": "ModProject",
+      "description": "A Minecraft Bedrock Edition add-on project owned by an authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "name": { "type": "string", "description": "Display name of the mod project" },
+        "namespace": { "type": "string", "description": "Bedrock identifier namespace" },
+        "description": { "type": "string", "description": "Summary of mod features" },
+        "targetVersion": { "type": "string", "description": "Target Minecraft Bedrock version" },
+        "bpUuid": { "type": "string", "description": "Behavior Pack manifest header UUID" },
+        "rpUuid": { "type": "string", "description": "Resource Pack manifest header UUID" },
+        "blocksCount": { "type": "integer", "description": "Count of custom blocks" },
+        "mobsCount": { "type": "integer", "description": "Count of custom mobs/entities" },
+        "weaponsCount": { "type": "integer", "description": "Count of custom weapons" },
+        "armorCount": { "type": "integer", "description": "Count of custom armor pieces" },
+        "itemsCount": { "type": "integer", "description": "Count of custom items" },
+        "structuresCount": { "type": "integer", "description": "Count of custom structures/features" },
+        "recipesCount": { "type": "integer", "description": "Count of crafting/furnace recipes" },
+        "texturesCount": { "type": "integer", "description": "Count of generated pixel textures" },
+        "validationErrorCount": { "type": "integer", "description": "Count of detected JSON/pack errors" },
+        "validationSummary": { "type": "string", "description": "Human-readable validation report" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp when created" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp when last modified" }
+      },
+      "required": [
+        "userId", "name", "namespace", "description", "targetVersion",
+        "bpUuid", "rpUuid", "blocksCount", "mobsCount", "weaponsCount",
+        "armorCount", "itemsCount", "structuresCount", "recipesCount",
+        "texturesCount", "validationErrorCount", "validationSummary",
+        "createdAt", "updatedAt"
+      ]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A single conversational turn in a mod project's AI studio chat history.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "projectId": { "type": "string", "description": "Parent ModProject document ID" },
+        "role": { "type": "string", "enum": ["USER", "ASSISTANT", "SYSTEM"], "description": "Speaker role" },
+        "text": { "type": "string", "description": "Message body" },
+        "attachmentName": { "type": "string", "description": "Attached file or image name" },
+        "attachmentType": { "type": "string", "enum": ["NONE", "IMAGE", "FILE"], "description": "Attachment kind" },
+        "modSnapshotSummary": { "type": "string", "description": "Summary of mod changes produced in this turn" },
+        "generatedFileCount": { "type": "integer", "description": "Number of pack files generated/updated" },
+        "validationErrorCount": { "type": "integer", "description": "Validation errors after this turn" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp when created" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp when updated" }
+      },
+      "required": [
+        "userId", "projectId", "role", "text", "attachmentName",
+        "attachmentType", "modSnapshotSummary", "generatedFileCount",
+        "validationErrorCount", "createdAt", "updatedAt"
+      ]
+    },
+    "ModFileEntry": {
+      "title": "ModFileEntry",
+      "description": "A generated Behavior Pack or Resource Pack file inside a ModProject.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID" },
+        "projectId": { "type": "string", "description": "Parent ModProject document ID" },
+        "packType": { "type": "string", "enum": ["BEHAVIOR_PACK", "RESOURCE_PACK"], "description": "Target Bedrock pack" },
+        "relativePath": { "type": "string", "description": "Relative path inside BP or RP" },
+        "contentText": { "type": "string", "description": "JSON or mcfunction file text" },
+        "textureBase64": { "type": "string", "description": "Optional base64 PNG texture data" },
+        "valid": { "type": "boolean", "description": "Whether file passes Bedrock schema validation" },
+        "validationNotes": { "type": "string", "description": "Diagnostic note if invalid" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp when created" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp when updated" }
+      },
+      "required": [
+        "userId", "projectId", "packType", "relativePath", "contentText",
+        "textureBase64", "valid", "validationNotes", "createdAt", "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/ModProject" },
+      "description": "User-owned Minecraft Bedrock mod projects"
+    },
+    "/users/{userId}/projects/{projectId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Conversational AI chat history for a mod project"
+    },
+    "/users/{userId}/projects/{projectId}/files/{fileId}": {
+      "schema": { "$ref": "#/entities/ModFileEntry" },
+      "description": "Behavior Pack and Resource Pack files belonging to a mod project"
+    }
+  }
+}
